@@ -43,6 +43,12 @@ def _image_metrics(image: Image.Image) -> dict[str, int | float]:
     }
 
 
+def _small_preview(image: Image.Image) -> Image.Image:
+    preview = image.copy()
+    preview.thumbnail((120, 68), Image.Resampling.LANCZOS)
+    return preview
+
+
 def _rms_contrast(image: Image.Image) -> float:
     histogram = image.histogram()
     pixel_count = sum(histogram)
@@ -64,18 +70,14 @@ def analyze_thumbnail(image_path: str | Path) -> dict[str, Any]:
         raise ValueError("Image must have non-zero width and height.")
     aspect_ratio = width / height
     is_16_9 = abs(aspect_ratio - (16 / 9)) < 0.02
-    mobile_preview = image.resize((120, 68), Image.Resampling.LANCZOS)
+    mobile_preview = _small_preview(image)
     original_metrics = _image_metrics(image)
     mobile_metrics = _image_metrics(mobile_preview)
     contrast_score = min(100, round(mobile_metrics["p5_p95_range"] / 1.8))
 
     recommendations = []
-    if not is_16_9:
-        recommendations.append("Check the crop: the image is not close to the standard 16:9 shape.")
-    if width < 1280 or height < 720:
-        recommendations.append("The image is below 1280x720; use a larger source when available.")
     if mobile_metrics["p5_p95_range"] < 90:
-        recommendations.append("The 120x68 preview has a narrow tonal range; inspect subject/background separation.")
+        recommendations.append("The small preview has a narrow tonal range; inspect subject/background separation.")
 
     return {
         "original_resolution": [width, height],
@@ -83,7 +85,7 @@ def analyze_thumbnail(image_path: str | Path) -> dict[str, Any]:
         "is_standard_16_9": is_16_9,
         "measured_contrast": original_metrics,
         "mobile_preview": {
-            "resolution": [120, 68],
+            "resolution": list(mobile_preview.size),
             "measured_contrast": mobile_metrics,
         },
         "visual_contrast": contrast_score,
@@ -91,6 +93,7 @@ def analyze_thumbnail(image_path: str | Path) -> dict[str, Any]:
         "limitations": [
             "Contrast metrics describe grayscale tonal spread, not subject isolation or visual saliency.",
             "Text density and legibility require visual inspection or a separate OCR-based tool.",
+            "Aspect ratio and resolution describe the supplied image; they are not design-quality scores.",
         ],
     }
 

@@ -11,7 +11,7 @@ from scripts.score import score_thumbnail
 
 
 class PrepImageTests(unittest.TestCase):
-    def test_reports_measured_preview_properties(self):
+    def test_reports_measured_properties_for_standard_thumbnail(self):
         with tempfile.TemporaryDirectory() as directory:
             image_path = Path(directory) / "thumb.png"
             image = Image.new("RGB", (1280, 720), "black")
@@ -25,6 +25,22 @@ class PrepImageTests(unittest.TestCase):
         self.assertEqual(result["mobile_preview"]["resolution"], [120, 68])
         self.assertGreater(result["visual_contrast"], 0)
         self.assertIn("not subject isolation", result["limitations"][0])
+
+    def test_preserves_aspect_ratio_for_arbitrary_screenshot_dimensions(self):
+        with tempfile.TemporaryDirectory() as directory:
+            image_path = Path(directory) / "screenshot.png"
+            image = Image.new("RGB", (600, 400), "white")
+            image.paste("black", (0, 0, 300, 400))
+            image.save(image_path)
+
+            result = analyze_thumbnail(image_path)
+
+        preview_width, preview_height = result["mobile_preview"]["resolution"]
+        self.assertLessEqual(preview_width, 120)
+        self.assertLessEqual(preview_height, 68)
+        self.assertAlmostEqual(preview_width / preview_height, 1.5, places=1)
+        self.assertFalse(result["is_standard_16_9"])
+        self.assertEqual(result["recommendations"], [])
 
 
 class ScoreTests(unittest.TestCase):
@@ -46,7 +62,23 @@ class ScoreTests(unittest.TestCase):
 
         self.assertEqual(result["final_score"], 87.5)
         self.assertAlmostEqual(result["breakdown"]["subject_clarity"]["weight"], 0.75)
-        self.assertIn("not a prediction of CTR", result["interpretation"])
+        self.assertIn("not a predicted CTR percentage", result["interpretation"])
+
+    def test_does_not_penalize_non_16_9_screenshot(self):
+        result = score_thumbnail(
+            {
+                "subject_clarity": 80,
+                "visual_contrast": 80,
+                "title_synergy": 80,
+                "cognitive_simplicity": 80,
+                "is_standard_16_9": False,
+            }
+        )
+
+        self.assertEqual(result["final_score"], 80)
+        self.assertEqual(result["actionable_feedback"], [
+            "No low-scoring dimension was identified; review the image at feed size."
+        ])
 
     def test_rejects_missing_or_out_of_range_ratings(self):
         with self.assertRaisesRegex(ValueError, "Missing required rating"):

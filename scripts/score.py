@@ -69,10 +69,8 @@ def score_thumbnail(
         elif value < 70:
             feedback.append(f"Consider refining {dimension.replace('_', ' ')}; this rating is below 70/100.")
 
-    if ratings.get("is_standard_16_9") is False:
-        feedback.append("Review the crop; the image is not close to standard 16:9.")
     if feedback == []:
-        feedback.append("No low-scoring dimension or aspect-ratio issue was identified; review the image at feed size.")
+        feedback.append("No low-scoring dimension was identified; review the image at feed size.")
 
     return {
         "final_score": round(final_score, 1),
@@ -85,7 +83,7 @@ def score_thumbnail(
             for dimension in DIMENSIONS
         },
         "actionable_feedback": feedback,
-        "interpretation": "A structured heuristic score, not a prediction of CTR or guaranteed performance.",
+        "interpretation": "A rough CTR-potential design checklist score, not a predicted CTR percentage or guaranteed performance.",
     }
 
 

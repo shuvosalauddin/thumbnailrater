@@ -26,7 +26,7 @@ To run the image checks manually:
 python scripts/prep_image.py path/to/thumbnail.jpg
 ```
 
-The script reports image dimensions, aspect ratio, and grayscale tonal measurements for the original image and a 120x68 preview. These measurements don't detect the subject, read text, or predict performance.
+The script reports image dimensions, aspect ratio, and grayscale tonal measurements for the original image and a small aspect-preserving preview. These measurements don't detect the subject, read text, or predict performance. Image dimensions are informational and are not penalized by the design score.
 
 For a numeric rubric score, save the preprocessing JSON, add ratings for `subject_clarity`, `title_synergy`, and `cognitive_simplicity` (0-100), then run:
 
@@ -34,7 +34,7 @@ For a numeric rubric score, save the preprocessing JSON, add ratings for `subjec
 python scripts/score.py path/to/ratings.json
 ```
 
-The score is a heuristic, not a CTR forecast. See `references/rubric.md` for rating guidance.
+The score is a rough CTR-potential design checklist, not a predicted CTR percentage. See `references/rubric.md` for rating guidance.
 
 ## Optional calibration
 
